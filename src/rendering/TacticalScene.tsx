@@ -193,27 +193,18 @@ function setInstance(
   mesh: THREE.InstancedMesh,
   index: number,
   ship: Ship,
-  phase: number,
+  position: THREE.Vector3,
+  direction: THREE.Vector3,
   color: THREE.Color,
 ): void {
-  const position = interpolateMotion(
-    ship.previousPosition,
-    ship.position,
-    ship.previousVelocity,
-    ship.velocity,
-    phase,
-  );
   const matrix = new THREE.Matrix4();
-  const direction = normalize(
-    lerp(ship.previousVelocity, ship.velocity, phase),
-  );
   const yaw = Math.atan2(direction.x, direction.z);
   const quaternion = new THREE.Quaternion().setFromEuler(
     new THREE.Euler(Math.PI / 2, yaw, 0),
   );
   const scaleAmount = ship.role === "fc" ? 1.25 : 0.82;
   matrix.compose(
-    toThree(position),
+    position,
     quaternion,
     new THREE.Vector3(scaleAmount, scaleAmount, scaleAmount),
   );
@@ -506,6 +497,8 @@ export function TacticalScene({
     const displayedIdealPosition = toThree(
       simulation.world.analysis.idealPosition,
     );
+    const displayedShipPositions = new Map<string, THREE.Vector3>();
+    const displayedShipDirections = new Map<string, THREE.Vector3>();
     idealRegion.position.copy(displayedIdealPosition);
     scene.add(idealRegion);
 
@@ -612,27 +605,62 @@ export function TacticalScene({
     const renderFrame = (now = performance.now()) => {
       const frameDelta = Math.min(0.05, (now - lastRenderTime) / 1000);
       const displaySmoothing = 1 - Math.exp(-frameDelta * 9);
+      const shipPositionSmoothing = 1 - Math.exp(-frameDelta * 18);
+      const shipDirectionSmoothing = 1 - Math.exp(-frameDelta * 10);
       const cameraSmoothing = 1 - Math.exp(-frameDelta * 7.5);
       lastRenderTime = now;
       const world = simulation.world;
       const phase = simulation.clock.phase;
-      const playerPosition = interpolateMotion(
-        world.player.previousPosition,
-        world.player.position,
-        world.player.previousVelocity,
-        world.player.velocity,
-        phase,
-      );
-      playerMesh.position.copy(toThree(playerPosition));
-      if (lengthSq(world.player.velocity) > 1) {
-        const playerDirection = lerp(
-          world.player.previousVelocity,
-          world.player.velocity,
-          phase,
+      const frameMotions = new Map<
+        string,
+        { position: THREE.Vector3; direction: THREE.Vector3 }
+      >();
+      const displayedMotion = (ship: Ship) => {
+        const cached = frameMotions.get(ship.id);
+        if (cached) return cached;
+        const targetPosition = toThree(
+          interpolateMotion(
+            ship.previousPosition,
+            ship.position,
+            ship.previousVelocity,
+            ship.velocity,
+            phase,
+          ),
         );
+        let position = displayedShipPositions.get(ship.id);
+        if (!position) {
+          position = targetPosition.clone();
+          displayedShipPositions.set(ship.id, position);
+        } else if (position.distanceToSquared(targetPosition) > 20_000 ** 2) {
+          position.copy(targetPosition);
+        } else {
+          position.lerp(targetPosition, shipPositionSmoothing);
+        }
+
+        const velocityDirection =
+          lengthSq(ship.velocity) > 1
+            ? normalize(lerp(ship.previousVelocity, ship.velocity, phase))
+            : normalize(ship.desiredDirection);
+        const targetDirection = toThree(velocityDirection);
+        let direction = displayedShipDirections.get(ship.id);
+        if (!direction) {
+          direction = targetDirection.clone();
+          displayedShipDirections.set(ship.id, direction);
+        } else if (targetDirection.lengthSq() > 0.0001) {
+          direction.lerp(targetDirection, shipDirectionSmoothing).normalize();
+        }
+        const motion = { position, direction };
+        frameMotions.set(ship.id, motion);
+        return motion;
+      };
+
+      const playerMotion = displayedMotion(world.player);
+      const playerPosition = playerMotion.position;
+      playerMesh.position.copy(playerPosition);
+      if (lengthSq(world.player.velocity) > 1) {
         playerMesh.rotation.y = Math.atan2(
-          playerDirection.x,
-          playerDirection.z,
+          playerMotion.direction.x,
+          playerMotion.direction.z,
         );
       }
 
@@ -640,12 +668,14 @@ export function TacticalScene({
       let hostileIndex = 0;
       for (const ship of world.ships) {
         if (!ship.visible) continue;
+        const motion = displayedMotion(ship);
         if (ship.alignment === "friendly") {
           setInstance(
             friendlyMesh,
             friendlyIndex,
             ship,
-            phase,
+            motion.position,
+            motion.direction,
             tempColor.set(ship.role === "fc" ? "#9af5ff" : "#4ab9e8"),
           );
           friendlyIndex += 1;
@@ -655,7 +685,8 @@ export function TacticalScene({
             hostileMesh,
             hostileIndex,
             ship,
-            phase,
+            motion.position,
+            motion.direction,
             tempColor.set(fleet?.color ?? "#ff6b5f"),
           );
           hostileIndex += 1;
@@ -675,14 +706,7 @@ export function TacticalScene({
         if (!bracket) continue;
         bracket.visible = ship.visible && ship.hp > 0;
         if (!bracket.visible) continue;
-        const position = interpolateMotion(
-          ship.previousPosition,
-          ship.position,
-          ship.previousVelocity,
-          ship.velocity,
-          phase,
-        );
-        bracket.position.copy(toThree(position));
+        bracket.position.copy(displayedMotion(ship).position);
         bracket.position.y += ship.role === "player" ? 420 : 260;
         const cameraDistance = camera.position.distanceTo(bracket.position);
         const baseScale = THREE.MathUtils.clamp(
@@ -785,7 +809,7 @@ export function TacticalScene({
         displaySmoothing,
       );
       idealRegion.position.copy(displayedIdealPosition);
-      exclusion.position.copy(toThree(playerPosition));
+      exclusion.position.copy(playerPosition);
 
       corridorMeshes.forEach((mesh, index) => {
         const corridor = world.corridors[index];
@@ -824,17 +848,7 @@ export function TacticalScene({
           : world.ships.find((ship) => ship.id === world.selectedId);
       selectionRing.visible = Boolean(selected?.visible);
       if (selected?.visible) {
-        selectionRing.position.copy(
-          toThree(
-            interpolateMotion(
-              selected.previousPosition,
-              selected.position,
-              selected.previousVelocity,
-              selected.velocity,
-              phase,
-            ),
-          ),
-        );
+        selectionRing.position.copy(displayedMotion(selected).position);
         selectionRing.position.y += 90;
       }
 
@@ -878,7 +892,7 @@ export function TacticalScene({
         );
       }
 
-      const focus = toThree(playerPosition);
+      const focus = playerPosition;
       const horizontal = Math.cos(orbit.pitch) * orbit.distance;
       const offset = new THREE.Vector3(
         Math.sin(orbit.yaw) * horizontal,

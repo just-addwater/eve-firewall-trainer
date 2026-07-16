@@ -10,9 +10,9 @@ For every ship, the movement system computes a desired velocity from normalized 
 
 `positionNext = positionCurrent + integratedVelocityOverOneSecond`
 
-The Nestor profile represents a 20,000,000 kg hull with two 3,750,000 kg 1600 mm plate additions: 27,500,000 kg fitted mass, 0.35 inertia modifier, and a 9.625 second response constant. AB increases effective response time to 13.475 seconds; MWD increases it to 17.325 seconds. Deactivating propulsion changes the desired maximum but does not clear velocity.
+The Nestor profile represents a 20,000,000 kg hull with two 3,750,000 kg 1600 mm plate additions: 27,500,000 kg fitted mass, 0.35 inertia modifier, and a 9.625 second unpropelled response constant. A battleship-sized AB or MWD contributes 50,000,000 kg while active, producing a 27.125 second fitted response constant. Deactivating propulsion changes the desired maximum and removes the module mass at the cycle boundary, but it does not clear velocity.
 
-Rendering uses cubic velocity-aware interpolation between authoritative samples. This keeps the one-hertz simulation unchanged while turns, acceleration, missiles, brackets, and camera tracking remain visually continuous.
+Rendering uses cubic velocity-aware interpolation between authoritative samples followed by a short display-only position and heading damper. This keeps the one-hertz simulation unchanged while turns, acceleration, missiles, brackets, and camera tracking remain visually continuous.
 
 ## Predictions
 
@@ -34,8 +34,11 @@ Every non-FC ship owns a compact row-and-column offset behind its FC. The offset
 Edit the `baseMaxVelocity`, `inertiaSeconds`, and propulsion multipliers in `Simulation.ts` while using `CALIBRATION.md` procedures. Current values aim for readable 120-second training exercises:
 
 - Nestor base speed: 92 m/s.
-- AB multiplier: 2.35×.
-- MWD multiplier: 6×.
+- Player AB multiplier: 2.35× before links.
+- Player MWD multiplier: 6× before links.
+- Rapid Deployment: +32.34% to the AB/MWD bonus portion when enabled.
+- Fleet AB target speed: 550 m/s at full throttle.
+- Fleet MWD target speed: 1.3 km/s at full throttle.
 - Two-plate Nestor response time: 9.625 seconds before propulsion modifiers.
 - Hostile FC base speed: roughly 260–310 m/s.
 

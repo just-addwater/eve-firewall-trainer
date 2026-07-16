@@ -24,6 +24,7 @@ export function Hud({
   const maximum = maximumVelocity(
     world.player.baseMaxVelocity,
     world.player.propulsion,
+    world.scenario.skirmishLinks,
   );
   const speedRatio = Math.min(1, speed / Math.max(1, maximum));
   const queuedSlots = new Set(
@@ -35,20 +36,20 @@ export function Hud({
     .filter((command) => command.type === "propulsion")
     .at(-1)?.mode;
   const propulsionState = (mode: PropulsionMode) => {
+    const remaining = Math.max(0, world.player.propulsionEndsTick - world.tick);
     if (
       world.player.propulsion === mode &&
       world.player.propulsionTarget === "none"
     )
-      return "STOPPING";
+      return `STOPPING ${remaining}s`;
     if (world.player.propulsion === mode) {
-      const remaining = Math.max(
-        0,
-        world.player.propulsionEndsTick - world.tick,
-      );
+      if (world.player.propulsionTarget !== mode) return `SWITCH ${remaining}s`;
       return `ACTIVE ${remaining}s`;
     }
     if (queuedPropulsion === mode || world.player.propulsionTarget === mode)
-      return "QUEUED";
+      return world.player.propulsion === "none"
+        ? "QUEUED"
+        : `QUEUED ${remaining}s`;
     return "OFF";
   };
   const propulsionClass = (mode: PropulsionMode) =>
@@ -57,6 +58,9 @@ export function Hud({
       "propulsion",
       mode === "afterburner" ? "ab" : "mwd",
       world.player.propulsion === mode ? "active" : "",
+      world.player.propulsion === mode && world.player.propulsionTarget !== mode
+        ? "deactivating"
+        : "",
       (queuedPropulsion === mode || world.player.propulsionTarget === mode) &&
       world.player.propulsion !== mode
         ? "queued"

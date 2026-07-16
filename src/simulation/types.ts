@@ -103,6 +103,7 @@ export interface ScenarioConfig {
   blueSpeed: number;
   bluePropulsion: PropulsionMode;
   blueThrottle: number;
+  skirmishLinks: boolean;
   staggeredMissiles: boolean;
   friendlyFire: boolean;
   hostiles: HostileFleetConfig[];

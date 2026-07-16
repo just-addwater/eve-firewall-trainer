@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SCENARIOS, cloneScenario } from "../simulation/scenarios";
+import { fleetMaximumVelocity } from "../simulation/movement";
 import type {
   AssistanceLevel,
   HostileFleetConfig,
@@ -18,6 +19,14 @@ interface ScenarioDrawerProps {
 
 const ASSISTANCE: AssistanceLevel[] = ["full", "partial", "minimal", "expert"];
 const PROPULSION: PropulsionMode[] = ["none", "afterburner", "microwarpdrive"];
+const formatDuration = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+const formatFleetSpeed = (mode: PropulsionMode, throttle: number): string => {
+  const speed = fleetMaximumVelocity(mode) * throttle;
+  return speed >= 1000
+    ? `${(speed / 1000).toFixed(2)} km/s`
+    : `${Math.round(speed)} m/s`;
+};
 
 export function ScenarioDrawer({
   open,
@@ -183,15 +192,15 @@ export function ScenarioDrawer({
                 Duration
                 <input
                   type="range"
-                  min="45"
-                  max="300"
-                  step="15"
+                  min="60"
+                  max="600"
+                  step="30"
                   value={draft.durationTicks}
                   onChange={(event) =>
                     update("durationTicks", Number(event.target.value))
                   }
                 />
-                <output>{draft.durationTicks}s</output>
+                <output>{formatDuration(draft.durationTicks)}</output>
               </label>
               <label>
                 Random seed
@@ -291,7 +300,30 @@ export function ScenarioDrawer({
                   update("blueThrottle", Number(event.target.value) / 100)
                 }
               />
-              <output>{Math.round(draft.blueThrottle * 100)}%</output>
+              <output>
+                {formatFleetSpeed(draft.bluePropulsion, draft.blueThrottle)} ·{" "}
+                {Math.round(draft.blueThrottle * 100)}%
+              </output>
+            </label>
+            <label>
+              Player skirmish links
+              <div className="segmented-control">
+                <button
+                  className={draft.skirmishLinks ? "active" : ""}
+                  type="button"
+                  onClick={() => update("skirmishLinks", true)}
+                >
+                  ON
+                </button>
+                <button
+                  className={!draft.skirmishLinks ? "active" : ""}
+                  type="button"
+                  onClick={() => update("skirmishLinks", false)}
+                >
+                  OFF
+                </button>
+              </div>
+              <small>Rapid Deployment boosts the Nestor's AB/MWD bonus.</small>
             </label>
           </section>
 
@@ -378,7 +410,10 @@ export function ScenarioDrawer({
                         })
                       }
                     />
-                    <output>{Math.round(fleet.throttle * 100)}%</output>
+                    <output>
+                      {formatFleetSpeed(fleet.propulsion, fleet.throttle)} ·{" "}
+                      {Math.round(fleet.throttle * 100)}%
+                    </output>
                   </label>
                   <label>
                     Missile speed

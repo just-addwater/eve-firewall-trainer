@@ -12,11 +12,11 @@ Fast missiles can appear to cross the sphere between ticks and remain unharmed. 
 
 ## Missiles
 
-Every missile has its own launch point, source fleet, moving target, velocity, turn blend, HP, remaining flight, and damage. Each fleet keeps an independent configured speed. Fleets can launch a complete 20-ship volley or stagger it into five-ship groups across four consecutive seconds, followed by the same 11-second reload. Seeded variation preserves deterministic mixed-speed waves. Impact uses the authoritative one-second missile segment against target radius so a fast missile cannot skip through its target.
+Every missile has its own launch point, source fleet, moving target, velocity, HP, and damage. Each fleet keeps an independent configured speed. Fleets can launch a complete 20-ship volley or stagger it into five-ship groups across four consecutive seconds, followed by the same 11-second reload. Seeded variation preserves deterministic mixed-speed waves. A living missile corrects directly toward a living friendly target every authority step and does not time out; it therefore impacts unless a smartbomb intercepts it. Impact uses the authoritative one-second missile segment against target radius so a fast missile cannot skip through its target.
 
 ## Propulsion modules
 
-AB and MWD are mutually exclusive auto-repeat modules. Capacitor is charged at the beginning of each 10-second cycle. Pressing the running module requests shutdown at the cycle boundary; selecting the other module queues a boundary switch. Speed, mass/inertia response, and retained momentum are modeled for the two-plate Nestor training fit. Scram effects, signature bloom, skills, overheating, and exact server Dogma calculations remain outside this trainer's scope.
+AB and MWD are mutually exclusive auto-repeat modules. Capacitor is charged at the beginning of each 10-second cycle. Pressing the running module requests shutdown at the cycle boundary; selecting the other module queues a boundary switch. Speed, module-added mass, vector acceleration, turning, and retained momentum are modeled for the two-plate Nestor training fit. The optional player Rapid Deployment link boosts the bonus portion of either propulsion module and is enabled by default. Scram effects, signature bloom, overheating, and exact server Dogma calculations remain outside this trainer's scope.
 
 ## Anchors and warp-ins
 

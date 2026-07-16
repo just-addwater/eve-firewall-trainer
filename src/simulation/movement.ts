@@ -26,6 +26,22 @@ export const PROPULSION_INERTIA_MULTIPLIER: Record<PropulsionMode, number> = {
   microwarpdrive: 1.8,
 };
 
+/** Standard battleship-sized AB/MWD added mass used by the player Nestor. */
+export const PROPULSION_MASS_ADDITION_KG: Record<PropulsionMode, number> = {
+  none: 0,
+  afterburner: 50_000_000,
+  microwarpdrive: 50_000_000,
+};
+
+export const FLEET_MAX_VELOCITY: Record<PropulsionMode, number> = {
+  none: 240,
+  afterburner: 550,
+  microwarpdrive: 1300,
+};
+
+/** Rapid Deployment strength applied to the prop-module bonus portion. */
+export const SKIRMISH_RAPID_DEPLOYMENT_BONUS = 0.3234;
+
 export const PROPULSION_CYCLE_SECONDS: Record<PropulsionMode, number> = {
   none: 0,
   afterburner: 10,
@@ -41,4 +57,21 @@ export const PROPULSION_CAPACITOR_COST: Record<PropulsionMode, number> = {
 export const maximumVelocity = (
   baseMaxVelocity: number,
   propulsion: PropulsionMode,
-): number => baseMaxVelocity * PROPULSION_SPEED_MULTIPLIER[propulsion];
+  skirmishLinks = false,
+): number => {
+  const moduleBonus = PROPULSION_SPEED_MULTIPLIER[propulsion] - 1;
+  const boostedBonus =
+    moduleBonus * (skirmishLinks ? 1 + SKIRMISH_RAPID_DEPLOYMENT_BONUS : 1);
+  return baseMaxVelocity * (1 + boostedBonus);
+};
+
+export const fleetMaximumVelocity = (propulsion: PropulsionMode): number =>
+  FLEET_MAX_VELOCITY[propulsion];
+
+export const platedNestorResponseSeconds = (
+  fittedMassKg: number,
+  inertiaModifier: number,
+  propulsion: PropulsionMode,
+): number =>
+  ((fittedMassKg + PROPULSION_MASS_ADDITION_KG[propulsion]) * inertiaModifier) /
+  1_000_000;

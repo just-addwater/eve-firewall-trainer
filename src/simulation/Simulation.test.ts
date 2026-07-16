@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { Simulation } from "./Simulation";
 import { distance } from "./math";
+import {
+  fleetMaximumVelocity,
+  maximumVelocity,
+  platedNestorResponseSeconds,
+} from "./movement";
 import { cloneScenario, SCENARIOS } from "./scenarios";
 
 const scenario = () => cloneScenario(SCENARIOS[0]!);
@@ -18,6 +23,13 @@ describe("Simulation", () => {
     ).toHaveLength(20);
     expect(simulation.world.fleets[0]!.engagementRange).toBe(55_000);
     expect(simulation.world.scenario.bluePropulsion).toBe("afterburner");
+    expect(simulation.world.scenario.blueThrottle).toBe(1);
+    expect(simulation.world.scenario.skirmishLinks).toBe(true);
+    expect(simulation.world.scenario.durationTicks).toBe(600);
+    expect(simulation.world.fleets[0]!.propulsion).toBe("microwarpdrive");
+    expect(simulation.world.fleets[0]!.throttle).toBe(1);
+    expect(fleetMaximumVelocity("afterburner")).toBe(550);
+    expect(fleetMaximumVelocity("microwarpdrive")).toBe(1300);
   });
 
   it("starts anchored fleets moving and fires a full volley every 11 seconds", () => {
@@ -106,6 +118,20 @@ describe("Simulation", () => {
     expect(simulation.world.player.propulsion).toBe("afterburner");
   });
 
+  it("preserves the selected throttle while steering", () => {
+    const simulation = new Simulation(scenario());
+    simulation.start();
+    simulation.queueCommand({ type: "speed", value: 0.5 });
+    simulation.advance(1000);
+    simulation.queueCommand({
+      type: "move",
+      vector: { x: 0, y: 0, z: 1 },
+      value: simulation.world.player.throttle,
+    });
+    simulation.advance(1000);
+    expect(simulation.world.player.throttle).toBe(0.5);
+  });
+
   it("uses sampled smartbomb range and attributes missile destruction", () => {
     const simulation = new Simulation(scenario());
     simulation.world.fleets.forEach((fleet) => {
@@ -192,6 +218,22 @@ describe("Simulation", () => {
     expect(simulation.world.capacitor).toBeGreaterThanOrEqual(0.8);
   });
 
+  it("guides every non-firewalled missile through to impact", () => {
+    const config = scenario();
+    config.hostiles[0]!.missileSpeed = 2500;
+    const simulation = new Simulation(config);
+    simulation.start();
+    simulation.advance(1000);
+    simulation.world.fleets[0]!.nextVolleyTick = 1000;
+
+    for (let tick = 0; tick < 70; tick += 1) simulation.advance(1000);
+
+    expect(simulation.world.stats.missilesLaunched).toBe(20);
+    expect(simulation.world.stats.missilesImpacted).toBe(20);
+    expect(simulation.world.stats.missilesExpired).toBe(0);
+    expect(simulation.world.missiles).toHaveLength(0);
+  });
+
   it("switches AB and MWD at cycle boundaries and auto-repeats until stopped", () => {
     const simulation = new Simulation(scenario());
     simulation.start();
@@ -237,6 +279,26 @@ describe("Simulation", () => {
 
     expect(noProp.world.player.massKg).toBe(27_500_000);
     expect(noProp.world.player.inertiaSeconds).toBeCloseTo(9.625);
+    expect(
+      platedNestorResponseSeconds(
+        afterburner.world.player.massKg,
+        afterburner.world.player.inertiaModifier,
+        "afterburner",
+      ),
+    ).toBeCloseTo(27.125);
+    expect(
+      maximumVelocity(
+        afterburner.world.player.baseMaxVelocity,
+        "afterburner",
+        true,
+      ),
+    ).toBeGreaterThan(
+      maximumVelocity(
+        afterburner.world.player.baseMaxVelocity,
+        "afterburner",
+        false,
+      ),
+    );
     expect(afterburner.world.player.velocity.x).toBeGreaterThan(
       noProp.world.player.velocity.x,
     );

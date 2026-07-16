@@ -30,6 +30,9 @@ import type {
   WorldState,
 } from "./simulation/types";
 
+const formatExerciseTime = (seconds: number): string =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+
 const initialScenario = (): ScenarioConfig => {
   try {
     if (window.location.hash.startsWith("#scenario=")) {
@@ -186,6 +189,15 @@ export function App() {
     (direction: Vec3) => issue({ type: "move", vector: direction }),
     [issue],
   );
+  const steer = useCallback(
+    (direction: Vec3) =>
+      issue({
+        type: "move",
+        vector: direction,
+        value: simulationRef.current.world.player.throttle,
+      }),
+    [issue],
+  );
   const stop = useCallback(() => issue({ type: "stop" }), [issue]);
   const matchBlue = useCallback(() => issue({ type: "match-blue" }), [issue]);
   const warpFleet = useCallback(
@@ -244,13 +256,16 @@ export function App() {
         const direction = normalize(current.world.player.desiredDirection);
         if (key === "a" || key === "d") {
           const angle = key === "a" ? -0.38 : 0.38;
-          move({
+          steer({
             x: direction.x * Math.cos(angle) - direction.z * Math.sin(angle),
             y: direction.y,
             z: direction.x * Math.sin(angle) + direction.z * Math.cos(angle),
           });
         } else {
-          move({ ...direction, y: direction.y + (key === "r" ? 0.55 : -0.55) });
+          steer({
+            ...direction,
+            y: direction.y + (key === "r" ? 0.55 : -0.55),
+          });
         }
       } else if (event.key === "Escape") {
         if (drawerOpen) setDrawerOpen(false);
@@ -262,7 +277,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [drawerOpen, issue, matchBlue, move, refresh, stop, toggleMissileTrails]);
+  }, [drawerOpen, issue, matchBlue, refresh, steer, stop, toggleMissileTrails]);
 
   const selected = useMemo(
     () =>
@@ -417,7 +432,7 @@ export function App() {
               }}
             />
           </i>
-          <span>{world.scenario.durationTicks}s</span>
+          <span>{formatExerciseTime(world.scenario.durationTicks)}</span>
         </div>
       </header>
 
@@ -483,14 +498,6 @@ export function App() {
             <dt>Relative velocity</dt>
             <dd>
               {formatSpeed(length(sub(world.player.velocity, blueFc.velocity)))}
-            </dd>
-          </div>
-          <div>
-            <dt>Safe to pulse</dt>
-            <dd
-              className={world.analysis.safeToPulse ? "positive" : "negative"}
-            >
-              {world.analysis.safeToPulse ? "YES" : "NO"}
             </dd>
           </div>
         </dl>

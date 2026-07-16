@@ -19,7 +19,7 @@ Every tick uses the same centralized order:
 3. Resolve hostile fleet warp-ins and update Blue/hostile FC decisions.
 4. Advance player, FC, and formation-member movement.
 5. Launch due full or staggered hostile missile groups from actual member positions.
-6. Guide and advance every active missile, then resolve impact/expiration.
+6. Guide every surviving missile directly toward a living target, then resolve impact.
 7. Recharge training capacitor.
 8. Recalculate corridors, threat, friendly safety, stopping prediction, and score.
 9. Record one compact replay frame and publish the mutated world for the UI.

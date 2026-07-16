@@ -54,7 +54,7 @@ Commands enter a queue and resolve only at the next authoritative one-second bou
 
 The 18 built-in presets cover a basic firing line, moving anchor, anchor turn, expanding friendly formation, orbiting AB fleet, MWD formation stretch, horizontal and vertical crossfire, pincer movement, three independent FCs, fast missile pressure, mixed arrival times, overtaking waves, formation traffic, momentum traps, reactive flanks, synchronized three-fleet arrivals, and an expert screen.
 
-The scenario editor changes duration, seed, assistance, Blue FC movement, Blue propulsion and anchor speed, hostile FC count, each hostile fleet's engagement range, propulsion, anchor speed, missile speed, and full-volley or staggered firing pattern. The default hostile engagement range is 55 km. Scenarios can be saved locally, exported/imported as JSON, or encoded in a shareable URL. Replays can be exported and imported separately.
+The scenario editor changes duration, seed, assistance, Blue FC movement, Blue propulsion and anchor speed, player skirmish links, hostile FC count, each hostile fleet's engagement range, propulsion, anchor speed, missile speed, and full-volley or staggered firing pattern. Exercises default to 10 minutes, the Blue fleet defaults to AB at 550 m/s, the hostile fleet defaults to MWD at 1.3 km/s, and hostile engagement range defaults to 55 km. Scenarios can be saved locally, exported/imported as JSON, or encoded in a shareable URL. Replays can be exported and imported separately.
 
 ## Simulation notes
 
@@ -63,7 +63,7 @@ The scenario editor changes duration, seed, assistance, Blue FC movement, Blue p
 - One to three hostile fleets with 20 ships each following an independent moving FC. Every hostile fleet begins firing immediately and reloads every 11 seconds.
 - A selected hostile fleet can warp off and return after a short delay at a new bearing and its configured engagement range.
 - Propulsion and smartbomb modules auto-repeat. A second press requests deactivation at the end of the active cycle; AB and MWD are mutually exclusive and switches occur at cycle boundaries.
-- Individually guided missiles with seeded speed variation and discrete sampled smartbomb interception.
+- Perfectly guided missiles with seeded speed variation: they impact a living target unless intercepted by a sampled smartbomb pulse.
 - EVE-inspired overview, selected-item panel, circular capacitor HUD, module rack, tactical camera, warnings, corridor overlays, and stopping predictions.
 - Positioning score weights ideal-region distance, corridor coverage, friendly separation, and relative velocity.
 - Replay frames store authoritative state rather than rendered frames. The after-action review graphs positioning/interception and generates targeted feedback.

@@ -7,15 +7,16 @@ import {
   distance,
   distanceToSegment,
   length,
-  lerp,
   normalize,
   scale,
   sub,
   vec,
 } from "./math";
 import {
+  fleetMaximumVelocity,
   maximumVelocity,
   NESTOR_TWO_PLATE_PROFILE,
+  platedNestorResponseSeconds,
   PROPULSION_CAPACITOR_COST,
   PROPULSION_CYCLE_SECONDS,
   PROPULSION_INERTIA_MULTIPLIER,
@@ -472,7 +473,7 @@ export class Simulation {
         case "move":
           if (command.vector) {
             this.world.player.desiredDirection = normalize(command.vector);
-            this.world.player.throttle = 1;
+            this.world.player.throttle = clamp(command.value ?? 1, 0, 1);
             this.world.player.command = "Aligning to vector";
           }
           break;
@@ -874,8 +875,7 @@ export class Simulation {
       normalize(ship.desiredDirection),
       maximum * ship.throttle,
     );
-    const responseSeconds =
-      ship.inertiaSeconds * PROPULSION_INERTIA_MULTIPLIER[ship.propulsion];
+    const responseSeconds = this.currentResponseSeconds(ship);
     const decay = Math.exp(-1 / responseSeconds);
     const response = 1 - decay;
 
@@ -891,7 +891,23 @@ export class Simulation {
   }
 
   private currentMaxVelocity(ship: Ship): number {
-    return maximumVelocity(ship.baseMaxVelocity, ship.propulsion);
+    if (ship.role !== "player") return fleetMaximumVelocity(ship.propulsion);
+    return maximumVelocity(
+      ship.baseMaxVelocity,
+      ship.propulsion,
+      this.world.scenario.skirmishLinks,
+    );
+  }
+
+  private currentResponseSeconds(ship: Ship): number {
+    if (ship.role === "player") {
+      return platedNestorResponseSeconds(
+        ship.massKg,
+        ship.inertiaModifier,
+        ship.propulsion,
+      );
+    }
+    return ship.inertiaSeconds * PROPULSION_INERTIA_MULTIPLIER[ship.propulsion];
   }
 
   private launchMissiles(): void {
@@ -975,8 +991,8 @@ export class Simulation {
         velocity: scale(direction, speed),
         previousVelocity: scale(direction, speed),
         maxVelocity: speed,
-        turningRate: 0.24,
-        remainingFlightTicks: 36,
+        turningRate: 1,
+        remainingFlightTicks: this.world.scenario.durationTicks + 120,
         hitPoints: 100,
         damage: 90,
         launchTick: this.world.tick,
@@ -993,18 +1009,27 @@ export class Simulation {
     const active: Missile[] = [];
     for (const missile of this.world.missiles) {
       if (missile.status === "intercepted") continue;
-      const target = this.getShip(missile.targetShipId);
-      if (!target || target.hp <= 0) {
+      let target = this.getShip(missile.targetShipId);
+      if (!target || target.hp <= 0 || !target.visible) {
+        const livingTargets = this.world.ships.filter(
+          (ship) =>
+            ship.alignment === "friendly" && ship.hp > 0 && ship.visible,
+        );
+        target =
+          livingTargets.length > 0 ? this.rng.pick(livingTargets) : undefined;
+        if (target) missile.targetShipId = target.id;
+      }
+      if (!target) {
         missile.status = "expired";
         this.world.stats.missilesExpired += 1;
         continue;
       }
       const desired = normalize(sub(target.position, missile.position));
-      const current = normalize(missile.velocity);
-      const direction = normalize(lerp(current, desired, missile.turningRate));
       missile.previousPosition = clone(missile.position);
       missile.previousVelocity = clone(missile.velocity);
-      missile.velocity = scale(direction, missile.maxVelocity);
+      // Live missiles use perfect server-side guidance. If a missile is not
+      // removed by the firewall, every authority step corrects toward a target.
+      missile.velocity = scale(desired, missile.maxVelocity);
       missile.position = add(missile.position, missile.velocity);
       missile.remainingFlightTicks -= 1;
 
@@ -1028,9 +1053,6 @@ export class Simulation {
           this.fleetColor(missile.fleetId),
           1500,
         );
-      } else if (missile.remainingFlightTicks <= 0) {
-        missile.status = "expired";
-        this.world.stats.missilesExpired += 1;
       } else {
         active.push(missile);
       }
@@ -1106,8 +1128,7 @@ export class Simulation {
     );
     const distanceToBlueFc = distance(player.position, blue.position);
     const speed = length(player.velocity);
-    const propulsionInertia = PROPULSION_INERTIA_MULTIPLIER[player.propulsion];
-    const responseSeconds = player.inertiaSeconds * propulsionInertia;
+    const responseSeconds = this.currentResponseSeconds(player);
     const stoppingTime = speed > 1 ? responseSeconds * Math.log(10) : 0;
     const stoppingDistance = speed * responseSeconds * 0.9;
     const covered = corridors.filter((corridor) => corridor.coverage).length;
@@ -1168,18 +1189,18 @@ export class Simulation {
     const warning =
       safetyState === "VIOLATION"
         ? "TOO CLOSE TO BLUE FLEET"
-        : !safeToPulse
-          ? "UNSAFE TO PULSE"
+        : safetyState === "DANGER"
+          ? "BLUE SHIPS NEAR BLAST RADIUS"
           : player.propulsion === "microwarpdrive" &&
               stoppingDistance > distanceToIdeal
             ? "HIGH OVERSHOOT RISK · BEGIN BRAKING"
             : covered === 0
               ? "NO MISSILE CORRIDOR COVERAGE"
               : corridors.some((corridor) => corridor.ticksToImpact <= 2)
-                ? "ONE-SECOND FIREWALL WINDOW"
+                ? "MISSILES ENTERING FIREWALL RANGE"
                 : covered > 1
                   ? "MULTI-FLEET CORRIDOR OVERLAP"
-                  : "SAFE TO PULSE";
+                  : "HOLD THE MISSILE CORRIDOR";
 
     this.world.analysis = {
       score,
