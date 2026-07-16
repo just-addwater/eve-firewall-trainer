@@ -1,0 +1,9 @@
+{
+  "generatedAt": null,
+  "sourcePath": null,
+  "recordCount": 0,
+  "records": [],
+  "warnings": [
+    "Fallback simulator calibration is active. Run npm run data:update with a local extracted EVE SDE to populate data-derived values."
+  ]
+}
