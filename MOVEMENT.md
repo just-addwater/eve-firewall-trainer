@@ -34,8 +34,8 @@ Every non-FC ship owns a compact row-and-column offset behind its FC. The offset
 Edit the `baseMaxVelocity`, `inertiaSeconds`, and propulsion multipliers in `Simulation.ts` while using `CALIBRATION.md` procedures. Current values aim for readable 120-second training exercises:
 
 - Nestor base speed: 92 m/s.
-- Player AB multiplier: 2.35× before links.
-- Player MWD multiplier: 6× before links.
+- Player AB top speed: 571 m/s with default skirmish links (about 454 m/s unlinked).
+- Player MWD top speed: 1,612 m/s with default skirmish links (about 1,241 m/s unlinked).
 - Rapid Deployment: +32.34% to the AB/MWD bonus portion when enabled.
 - Fleet AB target speed: 550 m/s at full throttle.
 - Fleet MWD target speed: 1.3 km/s at full throttle.

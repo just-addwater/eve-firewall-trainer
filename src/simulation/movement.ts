@@ -16,8 +16,10 @@ export const NESTOR_TWO_PLATE_PROFILE = {
 
 export const PROPULSION_SPEED_MULTIPLIER: Record<PropulsionMode, number> = {
   none: 1,
-  afterburner: 2.35,
-  microwarpdrive: 6,
+  // Unlinked multipliers are reverse-calibrated so the default-on Rapid
+  // Deployment link produces exactly 571 m/s AB and 1,612 m/s MWD.
+  afterburner: 4.93420110256191,
+  microwarpdrive: 13.4843124757706,
 };
 
 export const PROPULSION_INERTIA_MULTIPLIER: Record<PropulsionMode, number> = {

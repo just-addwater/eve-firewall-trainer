@@ -30,6 +30,8 @@ describe("Simulation", () => {
     expect(simulation.world.fleets[0]!.throttle).toBe(1);
     expect(fleetMaximumVelocity("afterburner")).toBe(550);
     expect(fleetMaximumVelocity("microwarpdrive")).toBe(1300);
+    expect(maximumVelocity(92, "afterburner", true)).toBeCloseTo(571);
+    expect(maximumVelocity(92, "microwarpdrive", true)).toBeCloseTo(1612);
   });
 
   it("starts anchored fleets moving and fires a full volley every 11 seconds", () => {

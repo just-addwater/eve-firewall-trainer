@@ -59,6 +59,7 @@ The scenario editor changes duration, seed, assistance, Blue FC movement, Blue p
 ## Simulation notes
 
 - One player Nestor rendered from the included local `public/models/Nestor.stl`, with seven smartbombs, AB, MWD, training capacitor, and full 3D movement.
+- The default linked player fit tops out at 571 m/s with AB and 1,612 m/s with MWD.
 - Ten blue ships by default, following short-range trailing slots behind a moving Blue FC.
 - One to three hostile fleets with 20 ships each following an independent moving FC. Every hostile fleet begins firing immediately and reloads every 11 seconds.
 - A selected hostile fleet can warp off and return after a short delay at a new bearing and its configured engagement range.
